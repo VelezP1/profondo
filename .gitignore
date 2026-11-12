@@ -1,0 +1,13 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# dev
+dev.log
+*.local
+
+# os
+.DS_Store
+Thumbs.db
