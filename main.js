@@ -7,20 +7,43 @@ const easeOut = (t) => 1 - Math.pow(1 - t, 3)
 // Layout stays native; motion glides to a stop instead of snapping with the wheel.
 let smoothY = window.scrollY
 
+// Geometry is measured once (and on resize / font load), never per frame:
+// reading layout in the middle of a frame full of style writes forces a reflow each time.
+const geo = new Map()
+function measure(el) {
+  geo.set(el, { top: el.getBoundingClientRect().top + window.scrollY, h: el.offsetHeight })
+}
+const measured = []
+function track(el) {
+  measured.push(el)
+  measure(el)
+  return el
+}
+function measureAll() {
+  for (const el of measured) measure(el)
+}
+// is any part of the section within ~a screen of the viewport?
+function near(el) {
+  const g = geo.get(el)
+  const t = g.top - smoothY
+  return t < window.innerHeight * 1.5 && t + g.h > -window.innerHeight * 0.5
+}
+
 // Pinned progress: 0 = section top reaches the viewport top, 1 = section bottom reaches the viewport bottom.
 function progressOf(el) {
-  const top = el.getBoundingClientRect().top + (window.scrollY - smoothY)
-  const total = el.offsetHeight - window.innerHeight
+  const g = geo.get(el)
+  const top = g.top - smoothY
+  const total = g.h - window.innerHeight
   if (total <= 0) return top < window.innerHeight / 2 ? 1 : 0
   return clamp(-top / total)
 }
 
 // Passing progress: 0 = element enters at the bottom, 1 = it has left through the top.
 function viewProgress(el) {
-  const rect = el.getBoundingClientRect()
-  const top = rect.top + (window.scrollY - smoothY)
+  const g = geo.get(el)
+  const top = g.top - smoothY
   const vh = window.innerHeight
-  return clamp((vh - top) / (vh + rect.height))
+  return clamp((vh - top) / (vh + g.h))
 }
 
 // ---------- Word splitter (masked rise-in) ----------
@@ -57,8 +80,9 @@ function splitWords(root) {
 }
 
 // ---------- Hero: a line of light opens the word like a curtain ----------
-const hero = document.getElementById('hero')
-const heroWindow = document.getElementById('hero-window')
+const hero = track(document.getElementById('hero'))
+const heroCl = document.getElementById('hero-cl')
+const heroCr = document.getElementById('hero-cr')
 const heroVideo = document.getElementById('hero-video')
 const heroL = document.getElementById('hero-l')
 const heroR = document.getElementById('hero-r')
@@ -85,7 +109,9 @@ function updateHero() {
   const a = e * (Math.max(heroSplit, vw - heroSplit) + 4)
   const left = Math.max(0, heroSplit - a)
   const right = Math.min(vw, heroSplit + a)
-  heroWindow.style.clipPath = `inset(0 ${((vw - right) / vw) * 100}% 0 ${(left / vw) * 100}%)`
+  // two black panels slide apart: transform-only, runs on the compositor
+  heroCl.style.transform = `translate3d(${left - vw}px,0,0)`
+  heroCr.style.transform = `translate3d(${right}px,0,0)`
   heroL.style.transform = `translateX(${-a}px)`
   heroR.style.transform = `translateX(${a}px)`
 
@@ -113,25 +139,34 @@ function updateHero() {
 }
 
 // ---------- Product sequence ----------
-// Each bottle emerges from darkness while the room takes its colour.
-const sequence = document.getElementById('sequence')
+// Each bottle emerges from darkness while the room takes its colour, holds still,
+// and its scent unfolds top → heart → base at the height it lives in the bottle.
+const sequence = track(document.getElementById('sequence'))
 const seqGlows = sequence.querySelectorAll('.seq-glow')
 const seqImgs = sequence.querySelectorAll('.seq-img')
 const seqCaps = sequence.querySelectorAll('.seq-cap')
-const seqGhosts = sequence.querySelectorAll('.seq-ghost')
 const seqCount = document.getElementById('seq-count')
 const seqBar = document.getElementById('seq-bar')
 const seqN = seqImgs.length
+const SEQ_PAD = 0.3 // a moment of rest before the first and after the last bottle
 let seqLast = -1
 
 function updateSequence() {
   const progress = progressOf(sequence)
-  const pos = progress * (seqN - 1)
+  const raw = progress * (seqN - 1 + SEQ_PAD * 2) - SEQ_PAD
+  const rawc = clamp(raw, 0, seqN - 1)
+  // each bottle dwells in the centre, then glides to the next
+  const base = Math.min(seqN - 2, Math.floor(rawc))
+  const t = clamp((rawc - base - 0.35) / 0.3)
+  const pos = base + t * t * (3 - 2 * t)
+
   for (let i = 0; i < seqN; i++) {
     const d = pos - i
     const ad = Math.abs(d)
 
-    seqGlows[i].style.opacity = Math.max(0, 1 - ad) * 0.9
+    const og = Math.max(0, 1 - ad * 1.4)
+    seqGlows[i].style.opacity = og
+    seqGlows[i].style.visibility = og === 0 ? 'hidden' : 'visible'
 
     const oImg = Math.max(0, 1 - ad * 1.15)
     const img = seqImgs[i]
@@ -139,13 +174,8 @@ function updateSequence() {
     img.style.transform = `translateX(${-d * 45}vw) rotate(${-d * 14}deg) scale(${1 - ad * 0.25})`
     img.style.visibility = oImg === 0 ? 'hidden' : 'visible'
     // silhouette → fully lit as it arrives at centre
-    img.firstElementChild.style.filter = `brightness(${0.08 + 0.92 * clamp(1 - Math.max(0, ad - 0.18) * 2.2)})`
-
-    // outlined ghost word drifts slower than the bottle
-    const g = seqGhosts[i]
-    g.style.opacity = Math.max(0, 1 - ad * 1.3)
-    g.style.transform = `translateX(${-d * 25}vw)`
-    g.style.visibility = ad >= 0.77 ? 'hidden' : 'visible'
+    const br = 0.08 + 0.92 * clamp(1 - Math.max(0, ad - 0.18) * 2.2)
+    img.firstElementChild.style.filter = br > 0.995 ? 'none' : `brightness(${br.toFixed(3)})`
 
     // a name is only ever on screen alone: gone entirely before the next one appears
     const oCap = clamp(1 - Math.max(0, ad - 0.1) * 3.2)
@@ -163,7 +193,7 @@ function updateSequence() {
 }
 
 // ---------- Worlds: scroll decides which panel opens ----------
-const worldsEl = document.getElementById('worlds')
+const worldsEl = track(document.getElementById('worlds'))
 const worldPanels = worldsEl.querySelectorAll('.world')
 const worldsCount = document.getElementById('worlds-count')
 let worldLast = -1
@@ -178,25 +208,22 @@ function updateWorlds() {
 }
 
 // ---------- Decants: the picture opens like a window ----------
-const decants = document.getElementById('decants')
-const decantsImg = document.getElementById('decants-img')
+const decants = track(document.getElementById('decants'))
 const decantsPic = document.getElementById('decants-pic')
 const decantsPhoto = document.getElementById('decants-photo')
 const decantsText = document.getElementById('decants-text')
 
 function updateDecants() {
-  const p = viewProgress(decants)
-  const drift = (p - 0.5) * 80
-  decantsImg.style.transform = `translateY(${-drift}px)`
-  decantsText.style.transform = `translateY(${drift * 0.4}px)`
-  const open = easeOut(clamp((p - 0.08) / 0.34))
-  const inset = (1 - open) * 28
-  decantsPic.style.clipPath = `inset(${inset}% ${inset}% ${inset}% ${inset}%)`
-  decantsPhoto.style.transform = `scale(${1.35 - open * 0.35})`
+  const p = progressOf(decants)
+  const open = easeOut(clamp(p / 0.6))
+  const inset = (1 - open) * 30
+  decantsPic.style.clipPath = `inset(${inset}% ${inset * 0.6}% ${inset}% ${inset * 0.6}%)`
+  decantsPhoto.style.transform = `scale(${1.4 - open * 0.4})`
+  decantsText.style.opacity = clamp((p - 0.25) / 0.3)
 }
 
 // ---------- Final call: slow push-in on the background ----------
-const cta = document.getElementById('cta')
+const cta = track(document.getElementById('cta'))
 const ctaBg = document.getElementById('cta-bg')
 
 function updateCta() {
@@ -204,13 +231,96 @@ function updateCta() {
   ctaBg.style.transform = `scale(${1.35 - p * 0.35})`
 }
 
+// ---------- Catalog: scroll turns the pages ----------
+const BOOKS = {
+  nicho: { pages: 18, aspect: 1238 / 2200, pdf: './catalog/Catalogo-Nicho-Profondo.pdf' },
+  diseniador: { pages: 18, aspect: 935 / 1210, pdf: './catalog/Catalogo-Disenador-Profondo.pdf' },
+}
+const catalogEl = track(document.getElementById('catalogo'))
+const catStage = document.getElementById('cat-stage')
+const catCounter = document.getElementById('cat-counter')
+const catTotal = document.getElementById('cat-total')
+const catDownload = document.getElementById('cat-download')
+const catBar = document.getElementById('cat-bar')
+const catTabs = document.querySelectorAll('.cat-tab')
+let book = 'nicho'
+let catImgs = []
+let catActive = -1
+
+function buildCatalog() {
+  const { pages, pdf } = BOOKS[book]
+  catStage.innerHTML = ''
+  catImgs = []
+  catActive = -1
+  for (let i = 0; i < pages; i++) {
+    const img = document.createElement('img')
+    img.alt = `Catálogo ${book}, página ${i + 1}`
+    img.dataset.src = `./catalog/${book}-${String(i + 1).padStart(2, '0')}.jpg`
+    img.className = 'absolute left-1/2 top-1/2 cursor-pointer ring-1 ring-[#c9a35c]/30'
+    img.addEventListener('click', () => {
+      const total = catalogEl.offsetHeight - window.innerHeight
+      const top = catalogEl.getBoundingClientRect().top + window.scrollY
+      window.scrollTo({ top: top + (i / (pages - 1)) * total, behavior: 'smooth' })
+    })
+    catStage.appendChild(img)
+    catImgs.push(img)
+  }
+  catDownload.href = pdf
+  catTotal.textContent = String(pages)
+  catTabs.forEach((t) => {
+    t.style.color = t.dataset.book === book ? '#f3ead8' : 'rgba(255,255,255,0.28)'
+  })
+  updateCatalog()
+}
+
+function updateCatalog() {
+  const { pages, aspect } = BOOKS[book]
+  const progress = progressOf(catalogEl)
+  // each page dwells in the centre, then glides to the next
+  const raw = progress * (pages - 1)
+  const base = Math.min(pages - 2, Math.floor(raw))
+  const t = clamp((raw - base - 0.3) / 0.4)
+  const pos = base + t * t * (3 - 2 * t)
+  const h = window.innerHeight * (window.innerWidth < 640 ? 0.62 : 0.74)
+  const w = h * aspect
+  const gap = w + Math.max(24, window.innerWidth * 0.02)
+  catImgs.forEach((img, i) => {
+    const d = i - pos
+    const ad = Math.abs(d)
+    const near = ad < 3.2
+    if (near && !img.getAttribute('src')) img.src = img.dataset.src
+    img.style.height = `${h}px`
+    img.style.width = `${w}px`
+    img.style.opacity = clamp(1 - Math.max(0, ad - 0.3) * 0.3) * (1 - clamp(ad) * 0.55)
+    img.style.visibility = near ? 'visible' : 'hidden'
+    img.style.zIndex = String(100 - Math.round(ad * 10))
+    img.style.transform = `translate(-50%, -48%) translateX(${d * gap}px) translateZ(${-ad * 120}px) rotateY(${-d * 22}deg) scale(${1.06 - Math.min(ad, 3) * 0.06})`
+  })
+  const active = Math.round(pos)
+  if (active !== catActive) {
+    catActive = active
+    catCounter.textContent = String(active + 1).padStart(2, '0')
+  }
+  catBar.style.width = `${progress * 100}%`
+}
+
+catTabs.forEach((t) =>
+  t.addEventListener('click', () => {
+    if (book === t.dataset.book) return
+    book = t.dataset.book
+    buildCatalog()
+  }),
+)
+buildCatalog()
+
 // ---------- Scroll engine ----------
-function updateAll() {
-  updateHero()
-  updateSequence()
-  updateWorlds()
-  updateDecants()
-  updateCta()
+function updateAll(force) {
+  if (force || near(hero)) updateHero()
+  if (force || near(sequence)) updateSequence()
+  if (force || near(worldsEl)) updateWorlds()
+  if (force || near(catalogEl)) updateCatalog()
+  if (force || near(decants)) updateDecants()
+  if (force || near(cta)) updateCta()
 }
 
 let running = false
@@ -233,15 +343,21 @@ function kick() {
 window.addEventListener('scroll', kick, { passive: true })
 window.addEventListener('resize', () => {
   smoothY = window.scrollY
+  measureAll()
   measureSplit()
-  updateAll()
+  updateAll(true)
+})
+window.addEventListener('load', () => {
+  measureAll()
+  updateAll(true)
 })
 measureSplit()
-updateAll()
+updateAll(true)
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(() => {
+    measureAll()
     measureSplit()
-    updateAll()
+    updateAll(true)
   })
 }
 
@@ -277,68 +393,14 @@ document.querySelectorAll('[data-split]').forEach((el) => {
   splitObserver.observe(el)
 })
 
-// ---------- Catalog ----------
-const BOOKS = {
-  nicho: { label: 'Nicho', pages: 18, pdf: './catalog/Catalogo-Nicho-Profondo.pdf' },
-  diseniador: { label: 'Diseñador', pages: 18, pdf: './catalog/Catalogo-Disenador-Profondo.pdf' },
+
+// ---------- Save the GPU: the film only plays while the hero is on screen ----------
+if ('IntersectionObserver' in window) {
+  new IntersectionObserver(
+    ([e]) => {
+      if (e.isIntersecting) heroVideo.play().catch(() => {})
+      else heroVideo.pause()
+    },
+    { threshold: 0 },
+  ).observe(hero)
 }
-
-const catImg = document.getElementById('cat-page')
-const catPrev = document.getElementById('cat-prev')
-const catNext = document.getElementById('cat-next')
-const catCounter = document.getElementById('cat-counter')
-const catDownload = document.getElementById('cat-download')
-const catTabs = document.querySelectorAll('.cat-tab')
-const DOWN_ARROW = '<svg class="h-4 w-3" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M6 0v18M1 13l5 5 5-5"/></svg>'
-
-let book = 'nicho'
-let page = 1
-
-const pageSrc = (b, p) => `./catalog/${b}-${String(p).padStart(2, '0')}.jpg`
-
-function renderCatalog() {
-  const { label, pages, pdf } = BOOKS[book]
-  catImg.src = pageSrc(book, page)
-  catImg.alt = `Catálogo ${label}, página ${page}`
-  catCounter.textContent = `${page} / ${pages}`
-  catDownload.href = pdf
-  catDownload.innerHTML = `Descargar catálogo ${label} (PDF) ${DOWN_ARROW}`
-  catPrev.disabled = page === 1
-  catNext.disabled = page === pages
-  catTabs.forEach((tab) => {
-    const active = tab.dataset.book === book
-    tab.className = `cat-tab border-b px-2 pb-2 text-xs uppercase tracking-[0.3em] transition-all duration-300 ${
-      active
-        ? 'border-[#c9a35c] text-[#e8c96a]'
-        : 'border-transparent text-white/40 hover:text-white/70'
-    }`
-  })
-  // restart page transition
-  catImg.style.animation = 'none'
-  void catImg.offsetWidth
-  catImg.style.animation = ''
-  // preload neighbors
-  for (const p of [page - 1, page + 1]) {
-    if (p >= 1 && p <= pages) new Image().src = pageSrc(book, p)
-  }
-}
-
-function go(d) {
-  page = Math.min(BOOKS[book].pages, Math.max(1, page + d))
-  renderCatalog()
-}
-
-catTabs.forEach((tab) =>
-  tab.addEventListener('click', () => {
-    book = tab.dataset.book
-    page = 1
-    renderCatalog()
-  }),
-)
-catPrev.addEventListener('click', () => go(-1))
-catNext.addEventListener('click', () => go(1))
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowRight') go(1)
-  if (e.key === 'ArrowLeft') go(-1)
-})
-renderCatalog()
