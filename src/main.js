@@ -1,94 +1,246 @@
 import './index.css'
 
-// Scroll progress: 0 = section top hits viewport top, 1 = section bottom hits viewport bottom.
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
+const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
+const easeOut = (t) => 1 - Math.pow(1 - t, 3)
+
+// ---------- Inertia ----------
+// Everything animated reads `smoothY`, a damped copy of the real scroll position.
+// Layout stays native; motion glides to a stop instead of snapping with the wheel.
+let smoothY = window.scrollY
+
+// Pinned progress: 0 = section top reaches the viewport top, 1 = section bottom reaches the viewport bottom.
 function progressOf(el) {
-  const rect = el.getBoundingClientRect()
-  const total = rect.height - window.innerHeight
-  if (total <= 0) return rect.top < window.innerHeight / 2 ? 1 : 0
-  return Math.min(1, Math.max(0, -rect.top / total))
+  const top = el.getBoundingClientRect().top + (window.scrollY - smoothY)
+  const total = el.offsetHeight - window.innerHeight
+  if (total <= 0) return top < window.innerHeight / 2 ? 1 : 0
+  return clamp(-top / total)
 }
 
-// ---------- Hero ----------
+// Passing progress: 0 = element enters at the bottom, 1 = it has left through the top.
+function viewProgress(el) {
+  const rect = el.getBoundingClientRect()
+  const top = rect.top + (window.scrollY - smoothY)
+  const vh = window.innerHeight
+  return clamp((vh - top) / (vh + rect.height))
+}
+
+// ---------- Word splitter (masked rise-in) ----------
+function splitWords(root) {
+  const inners = []
+  const walk = (node) => {
+    for (const child of Array.from(node.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        const parts = child.textContent.split(/(\s+)/)
+        const frag = document.createDocumentFragment()
+        for (const part of parts) {
+          if (!part) continue
+          if (/^\s+$/.test(part)) {
+            frag.appendChild(document.createTextNode(' '))
+          } else {
+            const w = document.createElement('span')
+            w.className = 'w'
+            const wi = document.createElement('span')
+            wi.className = 'wi'
+            wi.textContent = part
+            w.appendChild(wi)
+            frag.appendChild(w)
+            inners.push(wi)
+          }
+        }
+        child.replaceWith(frag)
+      } else if (child.nodeType === Node.ELEMENT_NODE && child.tagName !== 'BR') {
+        walk(child)
+      }
+    }
+  }
+  walk(root)
+  return inners
+}
+
+// ---------- Hero: a line of light opens the word like a curtain ----------
 const hero = document.getElementById('hero')
-const heroGlow = document.getElementById('hero-glow')
-const heroTitle = document.querySelector('[data-hero-title]')
+const heroWindow = document.getElementById('hero-window')
+const heroVideo = document.getElementById('hero-video')
+const heroL = document.getElementById('hero-l')
+const heroR = document.getElementById('hero-r')
+const heroShade = document.getElementById('hero-shade')
 const heroFades = document.querySelectorAll('[data-hero-fade]')
-const heroCue = document.querySelector('[data-hero-cue]')
+const heroFilm = document.getElementById('hero-film')
+const heroOut = document.getElementById('hero-out')
+const filmWords = splitWords(document.getElementById('hero-film-title'))
+
+// x position (in the viewport) where PROF meets ONDO — measured, because the halves differ in width
+const heroWord = document.getElementById('hero-word')
+let heroSplit = window.innerWidth / 2
+function measureSplit() {
+  heroSplit = heroWord.getBoundingClientRect().left + heroR.offsetLeft
+}
 
 function updateHero() {
   const p = progressOf(hero)
-  heroGlow.style.transform = `translate(-50%, -50%) scale(${1 + p * 0.5})`
-  heroTitle.style.letterSpacing = `${0.04 + p * 0.28}em`
-  heroTitle.style.transform = `translateY(${p * -70}px)`
-  heroTitle.style.opacity = 1 - p * 1.3
-  heroFades.forEach((el) => (el.style.opacity = 1 - p * 2))
-  heroCue.style.opacity = 1 - p * 3
+
+  // 0 → 0.42 : a line of light grows from the split in the word to the full frame;
+  // the two halves of the word ride its edges out
+  const e = easeInOut(clamp(p / 0.42))
+  const vw = window.innerWidth
+  const a = e * (Math.max(heroSplit, vw - heroSplit) + 4)
+  const left = Math.max(0, heroSplit - a)
+  const right = Math.min(vw, heroSplit + a)
+  heroWindow.style.clipPath = `inset(0 ${((vw - right) / vw) * 100}% 0 ${(left / vw) * 100}%)`
+  heroL.style.transform = `translateX(${-a}px)`
+  heroR.style.transform = `translateX(${a}px)`
+
+  // film pulls back from a close-up as the frame opens, then drifts forward slowly
+  const push = clamp((p - 0.42) / 0.58)
+  heroVideo.style.transform = `scale(${1.3 - 0.3 * e + push * 0.08})`
+
+  // logo, slogan and cue leave before the frame gets wide
+  const f1 = clamp(1 - p / 0.1)
+  heroFades.forEach((el) => (el.style.opacity = f1))
+
+  // grade for legibility once the film owns the screen
+  heroShade.style.opacity = clamp((p - 0.35) / 0.2)
+
+  // 0.5 → 0.82 : the one line, word by word
+  const f = clamp((p - 0.5) / 0.32)
+  heroFilm.style.opacity = clamp(1 - (p - 0.88) / 0.07)
+  filmWords.forEach((wd, i) => {
+    const t = easeOut(clamp(f * 1.7 - i * 0.14))
+    wd.style.transform = `translateY(${(1 - t) * 110}%)`
+  })
+
+  // 0.9 → 1 : into black, the next chapter rises out of it
+  heroOut.style.opacity = clamp((p - 0.9) / 0.1)
 }
 
 // ---------- Product sequence ----------
+// Each bottle emerges from darkness while the room takes its colour.
 const sequence = document.getElementById('sequence')
-const seqBgs = sequence.querySelectorAll('.seq-bg')
+const seqGlows = sequence.querySelectorAll('.seq-glow')
 const seqImgs = sequence.querySelectorAll('.seq-img')
 const seqCaps = sequence.querySelectorAll('.seq-cap')
-const seqDots = sequence.querySelectorAll('.seq-dot')
+const seqCount = document.getElementById('seq-count')
+const seqBar = document.getElementById('seq-bar')
 const seqN = seqImgs.length
+let seqLast = -1
 
 function updateSequence() {
-  const pos = progressOf(sequence) * (seqN - 1)
+  const progress = progressOf(sequence)
+  const pos = progress * (seqN - 1)
   for (let i = 0; i < seqN; i++) {
     const d = pos - i
+    const ad = Math.abs(d)
 
-    const oBg = Math.max(0, 1 - Math.abs(d))
-    seqBgs[i].style.opacity = oBg * 0.9
-    seqBgs[i].style.transform = `translateY(-50%) translateX(${d * -12}%)`
+    seqGlows[i].style.opacity = Math.max(0, 1 - ad) * 0.9
 
-    const oImg = Math.max(0, 1 - Math.abs(d))
-    seqImgs[i].style.opacity = oImg
-    seqImgs[i].style.transform = `translateY(${d * -14}vh) scale(${1 + d * -0.1}) rotate(${d * -4}deg)`
-    seqImgs[i].style.visibility = oImg === 0 ? 'hidden' : 'visible'
+    const oImg = Math.max(0, 1 - ad * 1.15)
+    const img = seqImgs[i]
+    img.style.opacity = oImg
+    img.style.transform = `translateX(${-d * 45}vw) rotate(${-d * 14}deg) scale(${1 - ad * 0.25})`
+    img.style.visibility = oImg === 0 ? 'hidden' : 'visible'
+    // silhouette → fully lit as it arrives at centre
+    img.firstElementChild.style.filter = `brightness(${0.08 + 0.92 * clamp(1 - Math.max(0, ad - 0.18) * 2.2)})`
 
-    const oCap = Math.max(0, 1 - Math.abs(d) * 1.6)
+    // a name is only ever on screen alone: gone entirely before the next one appears
+    const oCap = clamp(1 - Math.max(0, ad - 0.1) * 3.2)
     seqCaps[i].style.opacity = oCap
-    seqCaps[i].style.transform = `translateY(${d * 30}px)`
+    seqCaps[i].style.transform = `translateX(${d * -60}px)`
     seqCaps[i].style.visibility = oCap === 0 ? 'hidden' : 'visible'
-
-    const active = Math.round(pos) === i
-    seqDots[i].style.background = active ? '#c9a35c' : 'rgba(255,255,255,0.25)'
-    seqDots[i].style.transform = active ? 'scale(1.8)' : 'scale(1)'
   }
+  const active = Math.round(pos)
+  if (active !== seqLast) {
+    seqLast = active
+    const pad = (n) => String(n).padStart(2, '0')
+    seqCount.textContent = `${pad(active + 1)} / ${pad(seqN)}`
+  }
+  seqBar.style.width = `${progress * 100}%`
 }
 
-// ---------- Decants parallax ----------
+// ---------- Worlds: scroll decides which panel opens ----------
+const worldsEl = document.getElementById('worlds')
+const worldPanels = worldsEl.querySelectorAll('.world')
+const worldsCount = document.getElementById('worlds-count')
+let worldLast = -1
+
+function updateWorlds() {
+  const n = worldPanels.length
+  const active = Math.min(n - 1, Math.floor(progressOf(worldsEl) * n))
+  if (active === worldLast) return
+  worldLast = active
+  worldPanels.forEach((el, i) => (el.dataset.on = i === active ? 'true' : 'false'))
+  worldsCount.textContent = `0${active + 1}`
+}
+
+// ---------- Decants: the picture opens like a window ----------
 const decants = document.getElementById('decants')
 const decantsImg = document.getElementById('decants-img')
-const decantsBottle = decantsImg.querySelector('img:last-child')
+const decantsPic = document.getElementById('decants-pic')
+const decantsPhoto = document.getElementById('decants-photo')
 const decantsText = document.getElementById('decants-text')
 
 function updateDecants() {
-  const drift = (progressOf(decants) - 0.5) * 60
+  const p = viewProgress(decants)
+  const drift = (p - 0.5) * 80
   decantsImg.style.transform = `translateY(${-drift}px)`
-  decantsBottle.style.transform = `translateY(${drift * 0.6}px) rotate(4deg)`
   decantsText.style.transform = `translateY(${drift * 0.4}px)`
+  const open = easeOut(clamp((p - 0.08) / 0.34))
+  const inset = (1 - open) * 28
+  decantsPic.style.clipPath = `inset(${inset}% ${inset}% ${inset}% ${inset}%)`
+  decantsPhoto.style.transform = `scale(${1.35 - open * 0.35})`
+}
+
+// ---------- Final call: slow push-in on the background ----------
+const cta = document.getElementById('cta')
+const ctaBg = document.getElementById('cta-bg')
+
+function updateCta() {
+  const p = viewProgress(cta)
+  ctaBg.style.transform = `scale(${1.35 - p * 0.35})`
 }
 
 // ---------- Scroll engine ----------
-let raf = 0
-function onScroll() {
-  if (raf) return
-  raf = requestAnimationFrame(() => {
-    raf = 0
-    updateHero()
-    updateSequence()
-    updateDecants()
+function updateAll() {
+  updateHero()
+  updateSequence()
+  updateWorlds()
+  updateDecants()
+  updateCta()
+}
+
+let running = false
+function tick() {
+  const target = window.scrollY
+  smoothY += (target - smoothY) * 0.12
+  if (Math.abs(target - smoothY) < 0.2) smoothY = target
+  updateAll()
+  if (smoothY !== target) {
+    requestAnimationFrame(tick)
+  } else {
+    running = false
+  }
+}
+function kick() {
+  if (running) return
+  running = true
+  requestAnimationFrame(tick)
+}
+window.addEventListener('scroll', kick, { passive: true })
+window.addEventListener('resize', () => {
+  smoothY = window.scrollY
+  measureSplit()
+  updateAll()
+})
+measureSplit()
+updateAll()
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => {
+    measureSplit()
+    updateAll()
   })
 }
-window.addEventListener('scroll', onScroll, { passive: true })
-window.addEventListener('resize', onScroll)
-updateHero()
-updateSequence()
-updateDecants()
 
-// ---------- Reveal on scroll ----------
+// ---------- Reveals ----------
 const revealObserver = new IntersectionObserver(
   (entries) => {
     for (const e of entries) {
@@ -103,6 +255,23 @@ const revealObserver = new IntersectionObserver(
 )
 document.querySelectorAll('.reveal').forEach((el) => revealObserver.observe(el))
 
+// headings: each word rises out of a mask, staggered
+const splitObserver = new IntersectionObserver(
+  (entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) {
+        e.target.classList.add('in')
+        splitObserver.unobserve(e.target)
+      }
+    }
+  },
+  { threshold: 0.35 },
+)
+document.querySelectorAll('[data-split]').forEach((el) => {
+  splitWords(el).forEach((w, i) => w.style.setProperty('--i', i))
+  splitObserver.observe(el)
+})
+
 // ---------- Catalog ----------
 const BOOKS = {
   nicho: { label: 'Nicho', pages: 18, pdf: './catalog/Catalogo-Nicho-Profondo.pdf' },
@@ -115,6 +284,7 @@ const catNext = document.getElementById('cat-next')
 const catCounter = document.getElementById('cat-counter')
 const catDownload = document.getElementById('cat-download')
 const catTabs = document.querySelectorAll('.cat-tab')
+const DOWN_ARROW = '<svg class="h-4 w-3" viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M6 0v18M1 13l5 5 5-5"/></svg>'
 
 let book = 'nicho'
 let page = 1
@@ -127,15 +297,15 @@ function renderCatalog() {
   catImg.alt = `Catálogo ${label}, página ${page}`
   catCounter.textContent = `${page} / ${pages}`
   catDownload.href = pdf
-  catDownload.textContent = `Descargar catálogo ${label} (PDF) ↓`
+  catDownload.innerHTML = `Descargar catálogo ${label} (PDF) ${DOWN_ARROW}`
   catPrev.disabled = page === 1
   catNext.disabled = page === pages
   catTabs.forEach((tab) => {
     const active = tab.dataset.book === book
-    tab.className = `cat-tab rounded-full border px-6 py-2 text-xs uppercase tracking-[0.25em] transition-all duration-300 ${
+    tab.className = `cat-tab border-b px-2 pb-2 text-xs uppercase tracking-[0.3em] transition-all duration-300 ${
       active
-        ? 'border-[#c9a35c] bg-[#c9a35c]/10 text-[#e8c96a]'
-        : 'border-white/15 text-white/40 hover:border-white/40 hover:text-white/70'
+        ? 'border-[#c9a35c] text-[#e8c96a]'
+        : 'border-transparent text-white/40 hover:text-white/70'
     }`
   })
   // restart page transition
@@ -167,17 +337,3 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowLeft') go(-1)
 })
 renderCatalog()
-
-// ---------- Video section (hide itself if the clip is missing) ----------
-const videoSection = document.getElementById('video-section')
-const heroVideo = document.getElementById('hero-video')
-heroVideo.addEventListener('error', () => {
-  videoSection.style.display = 'none'
-})
-heroVideo.addEventListener('loadedmetadata', () => {
-  heroVideo.currentTime = 28
-})
-heroVideo.addEventListener('ended', () => {
-  heroVideo.currentTime = 28
-  void heroVideo.play()
-})

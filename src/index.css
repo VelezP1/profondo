@@ -65,3 +65,68 @@
     gold-shimmer 7s linear infinite;
   animation-delay: inherit;
 }
+
+
+/* ---- Profondo luxury layer ---- */
+html { scroll-behavior: smooth; }
+::selection { background: #c9a35c; color: #0a0a0a; }
+
+.gold-frame {
+  box-shadow: 0 0 0 1px rgba(201,163,92,0.35), 0 50px 100px -20px rgba(0,0,0,0.95);
+}
+
+/* ---- Worlds: expanding panels ---- */
+.world {
+  flex: 1 1 0;
+  transition: flex-grow 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.world[data-on="true"] { flex-grow: 4; }
+
+.world-img {
+  transform: scale(1.18);
+  filter: brightness(0.45) saturate(0.7);
+  transition: transform 1.4s, filter 1.4s;
+}
+.world[data-on="true"] .world-img { transform: scale(1.04); filter: none; }
+
+.world-ring {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
+  transition: box-shadow 0.7s;
+  pointer-events: none;
+}
+.world[data-on="true"] .world-ring { box-shadow: inset 0 0 0 1px rgba(201,163,92,0.5); }
+
+.world-title {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  transition: font-size 0.7s;
+}
+.world[data-on="true"] .world-title { font-size: 2.25rem; }
+@media (min-width: 640px) {
+  .world-title { font-size: 1.875rem; }
+  .world[data-on="true"] .world-title { font-size: 3.75rem; }
+}
+
+.world-more {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.7s, opacity 0.7s;
+}
+.world[data-on="true"] .world-more { max-height: 200px; opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+
+/* ---- Masked word rise-in for headings ---- */
+.w { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.12em; margin-bottom: -0.12em; }
+.wi { display: inline-block; }
+[data-split] .wi {
+  transform: translateY(115%);
+  transition: transform 1.1s cubic-bezier(0.22, 1, 0.36, 1) calc(var(--i, 0) * 80ms);
+}
+[data-split].in .wi { transform: translateY(0); }
+#hero-film-title .wi { will-change: transform; transform: translateY(110%); }
+
+#hero-word, #hero-outline { will-change: transform; }
+#decants-pic { will-change: clip-path; }
