@@ -7,7 +7,11 @@
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <meta name="description" content="Profondo — Casa de Perfumes en Puebla. Nicho, diseñador y árabes 100% originales. Decants desde 5 ml." />
     <title>Profondo Casa de Perfumes</title>
-    <script type="module" src="/src/main.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./main.js" defer></script>
   </head>
   <body>
     <main class="bg-black text-white antialiased">
@@ -66,16 +70,26 @@
         <div class="sticky top-0 h-screen overflow-hidden bg-black">
 
           <!-- room colour follows the bottle -->
-          <div class="seq-glow absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 68% 50%, rgba(201,140,70,0.32), transparent 70%)"></div>
-          <div class="seq-glow absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 68% 50%, rgba(200,70,60,0.32), transparent 70%)"></div>
-          <div class="seq-glow absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 68% 50%, rgba(60,140,210,0.32), transparent 70%)"></div>
-          <div class="seq-glow absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 68% 50%, rgba(170,110,50,0.32), transparent 70%)"></div>
-          <div class="seq-glow absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 68% 50%, rgba(212,175,55,0.32), transparent 70%)"></div>
+          <div class="seq-glow absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 68% 50%, rgba(201,140,70,0.5), transparent 70%)"></div>
+          <div class="seq-glow absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 68% 50%, rgba(200,70,60,0.5), transparent 70%)"></div>
+          <div class="seq-glow absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 68% 50%, rgba(60,140,210,0.5), transparent 70%)"></div>
+          <div class="seq-glow absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 68% 50%, rgba(170,110,50,0.5), transparent 70%)"></div>
+          <div class="seq-glow absolute inset-0" style="background: radial-gradient(ellipse 60% 70% at 68% 50%, rgba(212,175,55,0.5), transparent 70%)"></div>
 
 
           <p id="seq-count" class="absolute left-6 top-10 z-30 text-[10px] font-medium uppercase tracking-[0.5em] text-[#c9a35c] sm:left-14">
             La colección · 01 / 05
           </p>
+
+          <!-- ghost word + rings fill the dark -->
+          <div class="seq-ghost pointer-events-none absolute inset-0 z-0 flex items-center justify-end overflow-hidden"><span class="ghost-text font-display">LAYTON</span></div>
+          <div class="seq-ghost pointer-events-none absolute inset-0 z-0 flex items-center justify-end overflow-hidden"><span class="ghost-text font-display">ROUGE 540</span></div>
+          <div class="seq-ghost pointer-events-none absolute inset-0 z-0 flex items-center justify-end overflow-hidden"><span class="ghost-text font-display">EROS</span></div>
+          <div class="seq-ghost pointer-events-none absolute inset-0 z-0 flex items-center justify-end overflow-hidden"><span class="ghost-text font-display">KHAMRAH</span></div>
+          <div class="seq-ghost pointer-events-none absolute inset-0 z-0 flex items-center justify-end overflow-hidden"><span class="ghost-text font-display">OUD</span></div>
+          <div class="seq-ring pointer-events-none absolute z-0"></div>
+          <div class="seq-ring seq-ring-2 pointer-events-none absolute z-0"></div>
+          <div class="seq-vignette pointer-events-none absolute inset-0 z-[5]"></div>
 
           <!-- bottles -->
           <div class="seq-img absolute inset-y-0 right-0 z-10 flex w-full items-center justify-center sm:w-3/5">
@@ -114,26 +128,61 @@
             <span class="inline-flex items-center gap-4 text-[10px] uppercase tracking-[0.4em] text-[#e8c96a]"><span class="h-px w-10 bg-[#c9a35c]"></span>Nicho</span>
             <p class="mt-6 text-xs uppercase tracking-[0.4em] text-white/50">Parfums de Marly</p>
             <h3 class="font-display mt-2 text-4xl leading-[0.98] text-[#f3ead8] [text-shadow:0_4px_40px_rgba(0,0,0,0.9)] sm:text-7xl lg:text-8xl">Layton</h3>
+            <p class="font-display mt-4 text-lg italic text-[#e8c96a] sm:mt-6 sm:text-3xl">Vainilla · Especiado · Floral</p>
+            <p class="mt-3 text-[11px] uppercase tracking-[0.25em] text-white/60 sm:hidden">Manzana · Lavanda · Bergamota · Geranio · Violeta · Jazmín · Vainilla · Sándalo · Pachulí</p>
+            <div class="mt-8 hidden grid-cols-3 gap-8 border-t border-[#c9a35c]/30 pt-6 sm:grid">
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Salida</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Manzana<br />Lavanda<br />Bergamota</p></div>
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Corazón</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Geranio<br />Violeta<br />Jazmín</p></div>
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Fondo</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Vainilla<br />Sándalo<br />Pachulí</p></div>
+            </div>
           </div>
           <div class="seq-cap absolute inset-x-6 bottom-14 z-20 pr-16 sm:pr-0 sm:inset-x-14 sm:bottom-auto sm:top-1/2 sm:max-w-xl sm:-translate-y-1/2">
             <span class="inline-flex items-center gap-4 text-[10px] uppercase tracking-[0.4em] text-[#e8c96a]"><span class="h-px w-10 bg-[#c9a35c]"></span>Nicho</span>
             <p class="mt-6 text-xs uppercase tracking-[0.4em] text-white/50">Maison Francis Kurkdjian</p>
             <h3 class="font-display mt-2 text-4xl leading-[0.98] text-[#f3ead8] [text-shadow:0_4px_40px_rgba(0,0,0,0.9)] sm:text-7xl lg:text-8xl">Baccarat Rouge 540</h3>
+            <p class="font-display mt-4 text-lg italic text-[#e8c96a] sm:mt-6 sm:text-3xl">Ámbar · Floral · Azafrán</p>
+            <p class="mt-3 text-[11px] uppercase tracking-[0.25em] text-white/60 sm:hidden">Azafrán · Jazmín · Ámbar gris · Cedro · Resina de abeto · Almizcle</p>
+            <div class="mt-8 hidden grid-cols-3 gap-8 border-t border-[#c9a35c]/30 pt-6 sm:grid">
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Salida</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Azafrán<br />Jazmín</p></div>
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Corazón</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Ámbar gris<br />Cedro</p></div>
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Fondo</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Resina de abeto<br />Almizcle</p></div>
+            </div>
           </div>
           <div class="seq-cap absolute inset-x-6 bottom-14 z-20 pr-16 sm:pr-0 sm:inset-x-14 sm:bottom-auto sm:top-1/2 sm:max-w-xl sm:-translate-y-1/2">
             <span class="inline-flex items-center gap-4 text-[10px] uppercase tracking-[0.4em] text-[#e8c96a]"><span class="h-px w-10 bg-[#c9a35c]"></span>Diseñador</span>
             <p class="mt-6 text-xs uppercase tracking-[0.4em] text-white/50">Versace</p>
             <h3 class="font-display mt-2 text-4xl leading-[0.98] text-[#f3ead8] [text-shadow:0_4px_40px_rgba(0,0,0,0.9)] sm:text-7xl lg:text-8xl">Eros</h3>
+            <p class="font-display mt-4 text-lg italic text-[#e8c96a] sm:mt-6 sm:text-3xl">Fresco · Dulce · Intenso</p>
+            <p class="mt-3 text-[11px] uppercase tracking-[0.25em] text-white/60 sm:hidden">Menta · Manzana verde · Limón · Haba tonka · Geranio · Ambroxan · Vainilla · Cedro · Musgo de roble</p>
+            <div class="mt-8 hidden grid-cols-3 gap-8 border-t border-[#c9a35c]/30 pt-6 sm:grid">
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Salida</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Menta<br />Manzana verde<br />Limón</p></div>
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Corazón</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Haba tonka<br />Geranio<br />Ambroxan</p></div>
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Fondo</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Vainilla<br />Cedro<br />Musgo de roble</p></div>
+            </div>
           </div>
           <div class="seq-cap absolute inset-x-6 bottom-14 z-20 pr-16 sm:pr-0 sm:inset-x-14 sm:bottom-auto sm:top-1/2 sm:max-w-xl sm:-translate-y-1/2">
             <span class="inline-flex items-center gap-4 text-[10px] uppercase tracking-[0.4em] text-[#e8c96a]"><span class="h-px w-10 bg-[#c9a35c]"></span>Árabes</span>
             <p class="mt-6 text-xs uppercase tracking-[0.4em] text-white/50">Lattafa</p>
             <h3 class="font-display mt-2 text-4xl leading-[0.98] text-[#f3ead8] [text-shadow:0_4px_40px_rgba(0,0,0,0.9)] sm:text-7xl lg:text-8xl">Khamrah Qahwa</h3>
+            <p class="font-display mt-4 text-lg italic text-[#e8c96a] sm:mt-6 sm:text-3xl">Café · Canela · Gourmand</p>
+            <p class="mt-3 text-[11px] uppercase tracking-[0.25em] text-white/60 sm:hidden">Canela · Cardamomo · Jengibre · Café · Praliné · Vainilla · Haba tonka · Ámbar · Benjuí</p>
+            <div class="mt-8 hidden grid-cols-3 gap-8 border-t border-[#c9a35c]/30 pt-6 sm:grid">
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Salida</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Canela<br />Cardamomo<br />Jengibre</p></div>
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Corazón</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Café<br />Praliné<br />Vainilla</p></div>
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Fondo</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Haba tonka<br />Ámbar<br />Benjuí</p></div>
+            </div>
           </div>
           <div class="seq-cap absolute inset-x-6 bottom-14 z-20 pr-16 sm:pr-0 sm:inset-x-14 sm:bottom-auto sm:top-1/2 sm:max-w-xl sm:-translate-y-1/2">
             <span class="inline-flex items-center gap-4 text-[10px] uppercase tracking-[0.4em] text-[#e8c96a]"><span class="h-px w-10 bg-[#c9a35c]"></span>Árabes</span>
             <p class="mt-6 text-xs uppercase tracking-[0.4em] text-white/50">Lattafa</p>
             <h3 class="font-display mt-2 text-4xl leading-[0.98] text-[#f3ead8] [text-shadow:0_4px_40px_rgba(0,0,0,0.9)] sm:text-7xl lg:text-8xl">Oud for Glory</h3>
+            <p class="font-display mt-4 text-lg italic text-[#e8c96a] sm:mt-6 sm:text-3xl">Oud · Azafrán · Ambarado</p>
+            <p class="mt-3 text-[11px] uppercase tracking-[0.25em] text-white/60 sm:hidden">Azafrán · Nuez moscada · Oud · Pachulí · Ámbar · Almizcle · Sándalo</p>
+            <div class="mt-8 hidden grid-cols-3 gap-8 border-t border-[#c9a35c]/30 pt-6 sm:grid">
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Salida</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Azafrán<br />Nuez moscada</p></div>
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Corazón</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Oud<br />Pachulí</p></div>
+              <div><p class="text-[9px] font-medium uppercase tracking-[0.35em] text-[#c9a35c]">Fondo</p><p class="font-display mt-2 text-lg leading-snug text-[#f3ead8]/90 sm:text-xl">Ámbar<br />Almizcle<br />Sándalo</p></div>
+            </div>
           </div>
 
           <!-- progress line -->

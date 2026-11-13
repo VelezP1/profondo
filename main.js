@@ -1,5 +1,3 @@
-import './index.css'
-
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v))
 const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 const easeOut = (t) => 1 - Math.pow(1 - t, 3)
@@ -120,6 +118,7 @@ const sequence = document.getElementById('sequence')
 const seqGlows = sequence.querySelectorAll('.seq-glow')
 const seqImgs = sequence.querySelectorAll('.seq-img')
 const seqCaps = sequence.querySelectorAll('.seq-cap')
+const seqGhosts = sequence.querySelectorAll('.seq-ghost')
 const seqCount = document.getElementById('seq-count')
 const seqBar = document.getElementById('seq-bar')
 const seqN = seqImgs.length
@@ -142,10 +141,16 @@ function updateSequence() {
     // silhouette → fully lit as it arrives at centre
     img.firstElementChild.style.filter = `brightness(${0.08 + 0.92 * clamp(1 - Math.max(0, ad - 0.18) * 2.2)})`
 
+    // outlined ghost word drifts slower than the bottle
+    const g = seqGhosts[i]
+    g.style.opacity = Math.max(0, 1 - ad * 1.3)
+    g.style.transform = `translateX(${-d * 25}vw)`
+    g.style.visibility = ad >= 0.77 ? 'hidden' : 'visible'
+
     // a name is only ever on screen alone: gone entirely before the next one appears
     const oCap = clamp(1 - Math.max(0, ad - 0.1) * 3.2)
     seqCaps[i].style.opacity = oCap
-    seqCaps[i].style.transform = `translateX(${d * -60}px)`
+    seqCaps[i].style.translate = `${d * -60}px 0`
     seqCaps[i].style.visibility = oCap === 0 ? 'hidden' : 'visible'
   }
   const active = Math.round(pos)
